@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from .. import jtop, JtopException
+from jtop import jtop, JtopException
 import csv
 import argparse
+import time
+import os
 
 
 if __name__ == "__main__":
@@ -29,31 +31,34 @@ if __name__ == "__main__":
 
     print("Simple jtop logger")
     print("Saving log on {file}".format(file=args.file))
+    file_exists = os.path.exists(args.file)
 
     try:
         with jtop() as jetson:
             # Make csv file and setup csv
-            with open(args.file, 'w') as csvfile:
+            with open(args.file, 'a+') as csvfile:
                 stats = jetson.stats
+                stats['ts'] = time.time()
                 # Initialize cws writer
                 writer = csv.DictWriter(csvfile, fieldnames=stats.keys())
-                # Write header
-                writer.writeheader()
-                # Write first row
-                writer.writerow(stats)
+                if not file_exists:
+                    print("new log file, writing the header")
+                    # Write header
+                    writer.writeheader()
+                    # Write first row
+                    writer.writerow(stats)
                 # Start loop
                 while jetson.ok():
                     stats = jetson.stats
-                    print(stats)
+                    stats['ts'] = time.time()
                     # Write row
                     writer.writerow(stats)
-                    print("Log at {time}".format(time=stats['time']))
     except JtopException as e:
         print(e)
     except KeyboardInterrupt:
         print("Closed with CTRL-C")
     except IOError:
         print("I/O error")
-    except :
-        print("error")
+    except Exception as e:
+        print("error", str(e))
 # EOF

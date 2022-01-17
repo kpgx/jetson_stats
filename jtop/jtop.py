@@ -443,7 +443,7 @@ class jtop(Thread):
 
         where *value* is a boolean value
 
-        There are available other extra properties:
+        There are availabe other extra properties:
 
         * **boot** - You can enable and disable on boot **jetson_clocks**
         * **status** - A string with the current jetson_clocks status
@@ -563,9 +563,13 @@ class jtop(Thread):
         for temp in sorted(self.temperature):
             stats["Temp {name}".format(name=temp)] = self.temperature[temp]
         # -- Power --
-        total, _ = self.power
-        stats['power cur'] = total['cur']
-        stats['power avg'] = total['avg']
+        total, power = self.power
+        stats['total power cur'] = total['cur']
+        stats['total power avg'] = total['avg']
+        stats['cpu power cur'] = power['5V CPU']['cur']
+        stats['cpu power avg'] = power['5V CPU']['avg']
+        stats['gpu power cur'] = power['5V GPU']['cur']
+        stats['gpu power avg'] = power['5V GPU']['avg']
         return stats
 
     @property
@@ -929,7 +933,7 @@ class jtop(Thread):
             if e.errno == 2 or e.errno == 111:  # Message error: 'No such file or directory' or 'Connection refused'
                 raise JtopException("The jetson_stats.service is not active. Please run:\nsudo systemctl restart jetson_stats.service")
             elif e.errno == 13:  # Message error: 'Permission denied'
-                raise JtopException("I can't access jetson_stats.service.\nPlease logout or reboot this board.")
+                raise JtopException("I can't access to jetson_stats.service.\nPlease logout or reboot this board.")
             else:
                 raise FileNotFoundError(e)
         except ConnectionRefusedError as e:
@@ -940,14 +944,14 @@ class jtop(Thread):
                 raise ConnectionRefusedError(e)
         except PermissionError as e:
             if e.errno == 13:  # Permission denied
-                raise JtopException("I can't access jetson_stats.service.\nPlease logout or reboot this board.")
+                raise JtopException("I can't access to jetson_stats.service.\nPlease logout or reboot this board.")
             else:
                 raise PermissionError(e)
         except ValueError:
             # https://stackoverflow.com/questions/54277946/queue-between-python2-and-python3
-            raise JtopException("Mismatch of Python versions between library and service")
+            raise JtopException("mismatch python version between library and service")
         except AuthenticationError:
-            raise JtopException("Authentication with jetson-stats server failed")
+            raise JtopException("Authentication mismatch with jetson-stats server")
         # Initialize synchronized data and condition
         self._controller = self._broadcaster.get_queue()
         self._sync_data = self._broadcaster.sync_data()
